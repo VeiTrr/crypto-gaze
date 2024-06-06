@@ -1,26 +1,32 @@
-version: "3.9"
-
 services:
-  postgres:
-    image: postgres:12
-    restart: always
-    env_file:
-      - .env
-    healthcheck:
-      test: pg_isready -U postgres
-      interval: 3s
-      timeout: 2s
-      retries: 3
-
   backend:
     build:
       context: backend
+      dockerfile: Dockerfile
     ports:
-      - "8000:8000"
-    env_file: .env
+      - "5000:5000"
+    volumes:
+      - ./backend:/usr/src/app
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/cryptogaze
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/src/app
     depends_on:
-      postgres:
-        condition: service_healthy
+      - backend
+
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
 volumes:
-  app-db-data:
-  root-home:
+  mongo-data:
