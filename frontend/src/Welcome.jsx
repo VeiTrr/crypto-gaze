@@ -2,11 +2,11 @@ import React, {useEffect, useState} from 'react';
 import './Welcome.scss';
 import eyeOpen from '/eye-open.svg';
 import eyeClose from '/eye.svg';
-import {Link, useNavigate} from "react-router-dom";
+import {useNavigate} from "react-router-dom";
+import axios from "axios";
 
 function Welcome() {
-    const [username, setUsername] = useState('')
-    const [login, setLogin] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [activeButton, setActiveButton] = useState('signIn');
@@ -14,27 +14,43 @@ function Welcome() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const navigate = useNavigate();
 
-    const submitFormReg = (e) => {
-        const userData = {
-            username: username,
-            login: login,
-            password: password
-        };
-
-        e.preventDefault();
+    const submitForm = async (e) => {
+        if (e) e.preventDefault();
         if (activeButton === 'signUp' && password !== confirmPassword) {
             alert('Passwords do not match!');
             return;
         }
 
+        const userData = {username, password};
+        const endpoint = activeButton === 'signUp' ? '/api/auth/register' : '/api/auth/login';
 
-        //implement registration
-    }
-
-    const submitForm = (e) => {
-        e.preventDefault();
-        console.log('Form submitted');
+        try {
+            const response = await axios.post(endpoint, userData);
+            if (response.data?.accessToken && response.data?.refreshToken) {
+                localStorage.setItem('accessToken', response.data.accessToken);
+                localStorage.setItem('refreshToken', response.data.refreshToken);
+                navigate('/home');
+            } else {
+                console.log(response.data);
+                alert('Error: ' + response.data.message);
+            }
+        } catch (error) {
+            console.log(error);
+            alert('Error: ' + error.message);
+            if (error.response.status === 401) {
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
+            }
+        }
     };
+
+    useEffect(() => {
+        const accessToken = localStorage.getItem('accessToken');
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (accessToken && refreshToken) {
+            navigate('/home');
+        }
+    }, []);
 
     const switchButton = (button) => {
         setActiveButton(button);
@@ -45,35 +61,17 @@ function Welcome() {
     };
 
     const toggleShowConfirmPassword = () => {
-        setShowConfirmPassword(!showConfirmPassword); // новая функция
+        setShowConfirmPassword(!showConfirmPassword);
     };
-
-    useEffect(() => {
-        async function proverka() {
-            let refreshToken = (await getJwt()).refresh
-            if (refreshToken) {
-                navigate('/home');
-            }
-        }
-
-        proverka()
-    }, [navigate]);
 
     return (
         <div className="welcome-page">
             <div className="auth-section">
                 <h2>Вход / Регистрация</h2>
-                <form onSubmit={submitFormReg} className="login-form">
-                    {activeButton === 'signUp' && (
-                        <div className="input-field">
-                            <img src="/login.svg" alt="Email Icon" className="input-icon"/>
-                            <input type="email" value={username} onChange={(e) => setUsername(e.target.value)}
-                                   placeholder="Username" required className="login-box"/>
-                        </div>
-                    )}
+                <form onSubmit={submitForm} className="login-form">
                     <div className="input-field">
                         <img src="/login.svg" alt="Email Icon" className="input-icon"/>
-                        <input type="email" value={login} onChange={(e) => setLogin(e.target.value)}
+                        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)}
                                placeholder="Login" required className="login-box"/>
                     </div>
                     <div className="input-field">
@@ -96,35 +94,24 @@ function Welcome() {
                         </div>
                     )}
                     <div className="buttons-container">
-                        {activeButton !== 'signUp' && (
-                            <>
-                                <Link to={'/home'}>
-                                    <button type="button"
-                                            className={activeButton === 'signIn' ? 'active-button' : 'inactive-button'}
-                                            //onClick={submitForm}
-                                        >
-                                        Войти
-                                    </button>
-                                </Link>
-
-                                <button type="button"
-                                        className={activeButton === 'signUp' ? 'active-button' : 'inactive-button'}
-                                        onClick={() => switchButton('signUp')}>Зарегистрироваться
-                                </button>
-                            </>
-                        )}
-
+                        <button type="button"
+                                className={activeButton === 'signIn' ? 'active-button' : 'inactive-button'}
+                                onClick={() => {
+                                    if (activeButton === 'signUp') {
+                                        switchButton('signIn');
+                                    } else {
+                                        submitForm();
+                                    }
+                                }}>
+                            Войти
+                        </button>
+                        <button type="button"
+                                className={activeButton === 'signUp' ? 'active-button' : 'inactive-button'}
+                                onClick={() => switchButton('signUp')}>
+                            Зарегистрироваться
+                        </button>
                         {activeButton === 'signUp' && (
-                            <>
-                                <button type="button"
-                                        className={activeButton === 'signIn' ? 'active-button' : 'inactive-button'}
-                                        onClick={() => switchButton('signIn')}>Войти
-                                </button>
-                                <button type="button"
-                                        className={activeButton === 'signUp' ? 'active-button' : 'inactive-button'}
-                                        onClick={submitFormReg}>Подтвердить
-                                </button>
-                            </>
+                            <button type="submit" className="inactive-button">Подтвердить</button>
                         )}
                     </div>
                 </form>

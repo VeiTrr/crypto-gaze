@@ -1,36 +1,35 @@
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
-require('dotenv').config();
-
-const API_URL = process.env.API_URL;
+const API_URL = process.env.API_URL.replace(/\/$/, ''); // Ensure no trailing slash
 const API_KEY = process.env.API_KEY;
 
-router.get('/cryptocurrency/quotes/latest', async (req, res) => {
-    try {
-        const response = await axios.get(`${API_URL}/v1/cryptocurrency/quotes/latest`, {
-            params: req.query,
-            headers: {
-                'X-CMC_PRO_API_KEY': API_KEY
-            }
-        });
-        res.status(200).json(response.data);
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching cryptocurrency data', error });
-    }
-});
+router.all('/*', async (req, res) => {
+    const { path, method, body, query } = req;
+    const apiPath = path.replace(/^\//, '');
+    const requestUrl = `${API_URL}/${apiPath}`;
+    const headers = { 'X-CMC_PRO_API_KEY': API_KEY };
 
-router.get('/cryptocurrency/info', async (req, res) => {
+    const axiosConfig = {
+        method,
+        url: requestUrl,
+        headers
+    };
+
+
+    if (Object.keys(body).length > 0) {
+        axiosConfig.data = body;
+    }
+    if (Object.keys(query).length > 0) {
+        axiosConfig.params = query;
+    }
+
     try {
-        const response = await axios.get(`${API_URL}/v1/cryptocurrency/info`, {
-            params: req.query,
-            headers: {
-                'X-CMC_PRO_API_KEY': API_KEY
-            }
-        });
-        res.status(200).json(response.data);
+        const response = await axios(axiosConfig);
+        res.status(response.status).json(response.data);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching cryptocurrency info', error });
+        console.error('\nError during request forwarding:', error.response ? error.response.data : error.message);
+        res.status(500).json({ message: 'Error forwarding request', error: error.response ? error.response.data : error.message });
     }
 });
 

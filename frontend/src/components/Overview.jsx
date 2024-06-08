@@ -5,7 +5,6 @@ import './Overview.scss';
 function Overview() {
     const [favoritesData, setFavoritesData] = useState([]);
     const [top10Data, setTop10Data] = useState([]);
-    const [error, setError] = useState(null);
     const [isLoadingFavorites, setIsLoadingFavorites] = useState(true);
     const [isLoadingTop10, setIsLoadingTop10] = useState(true);
     const [dots, setDots] = useState('');
@@ -20,14 +19,14 @@ function Overview() {
                 ];
 
                 const ids = favorites.map(currency => currency.id).join(',');
-                const response = await axios.get(`/api/v1/cryptocurrency/quotes/latest`, {
+                const response = await axios.get(`/api/crypto/v2/cryptocurrency/quotes/latest`, {
                     params: {
                         id: ids,
                         convert: 'USD',
                     }
                 });
 
-                const infoResponse = await axios.get(`/api/v2/cryptocurrency/info`, {
+                const infoResponse = await axios.get(`/api/crypto/v2/cryptocurrency/info`, {
                     params: {
                         id: ids,
                     }
@@ -55,14 +54,14 @@ function Overview() {
 
         const fetchTop10Data = async () => {
             try {
-                const response = await axios.get(`/api/v1/cryptocurrency/listings/latest`, {
+                const response = await axios.get(`/api/crypto/v1/cryptocurrency/listings/latest`, {
                     params: {
                         limit: 10,
                     }
                 });
 
                 const ids = response.data.data.map(currency => currency.id).join(',');
-                const infoResponse = await axios.get(`/api/v2/cryptocurrency/info`, {
+                const infoResponse = await axios.get(`/api/crypto/v2/cryptocurrency/info`, {
                     params: {
                         id: ids,
                     }
@@ -107,10 +106,6 @@ function Overview() {
 
         return () => clearInterval(timer);
     }, [isLoadingFavorites, isLoadingTop10]);
-
-    if (error) {
-        return <div className='Overview-page'>{error}</div>;
-    }
 
     return (
         <div className="Overview-page">

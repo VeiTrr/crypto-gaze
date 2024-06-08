@@ -8,6 +8,8 @@ import notificationsIcon from '/NotificationsIcon.svg';
 import messagesIcon from '/MessagesIcon.svg';
 import logoutIcon from '/LogoutIcon.svg';
 import SettingsIcon from '/SettingsIcon.svg';
+import axios from "axios";
+
 const Overview = lazy(() => import('./components/Overview'));
 const Favorites = lazy(() => import('./components/Favorites'));
 const Top100 = lazy(() => import('./components/Top100'));
@@ -15,6 +17,7 @@ const Wallets = lazy(() => import('./components/Wallets'));
 const CryptoDetail = lazy(() => import('./components/CryptoDetail'));
 
 function Home() {
+    const [userData, setUserData] = useState(null);
     const location = useLocation();
     const [activeLink, setActiveLink] = useState(location.pathname + location.search);
     const [messagesCount, setMessagesCount] = useState(0);
@@ -26,6 +29,31 @@ function Home() {
     const top100 = new URLSearchParams(location.search).has('Top100');
     const wallets = new URLSearchParams(location.search).has('Wallets');
     const id = new URLSearchParams(location.search).get('id');
+
+    const handleLogout = () => {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        navigate('/');
+    }
+
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const token = localStorage.getItem('accessToken');
+                const response = await axios.get('/api/auth/user', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                setUserData(response.data);
+            } catch (error) {
+                console.error('Error fetching user data', error);
+            }
+        };
+
+        fetchUserData();
+    }, []);
 
     useEffect(() => {
         setActiveLink(location.pathname + location.search);
@@ -60,20 +88,18 @@ function Home() {
                     </nav>
                     <div className="profile-section">
                         <div className="profile-info">
-                            <img className="profile-icon" src="" alt="Profile Icon"/>
-                            <p className="username">Username</p>
+                            <img className="profile-icon" src={userData?.avatar || ''} alt="Profile Icon"/>
+                            <p className="username">{userData?.username || 'Username'}</p>
                             <button className="settings-button">
                                 <Link to="/Settings">
                                     <img src={SettingsIcon} alt="Settings Icon"/>
                                 </Link>
                             </button>
                         </div>
-                        <Link to={'/'}>
-                            <button className="logout-button">
-                                <img src={logoutIcon} alt="Logout Icon"/>
-                                Log Out
-                            </button>
-                        </Link>
+                        <button className="logout-button" onClick={handleLogout}>
+                            <img src={logoutIcon} alt="Logout Icon"/>
+                            Log Out
+                        </button>
                     </div>
                 </div>
             </div>
@@ -91,11 +117,11 @@ function Home() {
                 </div>
                 <div className="content">
                     <Suspense fallback={<div>Loading...</div>}>
-                        {overview && <Overview />}
-                        {favorites && <Favorites />}
-                        {top100 && <Top100 />}
-                        {wallets && <Wallets />}
-                        {id && <CryptoDetail id={id} />}
+                        {overview && <Overview/>}
+                        {favorites && <Favorites/>}
+                        {top100 && <Top100/>}
+                        {wallets && <Wallets/>}
+                        {id && <CryptoDetail id={id}/>}
                     </Suspense>
                 </div>
             </div>
